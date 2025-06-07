@@ -9,9 +9,11 @@
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
+    "@aws-amplify/backend": "^1.16.1",
+    "@aws-amplify/backend-cli": "^1.7.2",
     "prettier": "^3.5.3",
     "turbo": "^2.5.4",
-    "typescript": "5.8.2"
+    "typescript": "^5.8.2"
   },
   "engines": {
     "node": ">=18"
