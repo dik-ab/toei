@@ -35,6 +35,7 @@ model Item {
   category ItemCategory // 処理物 or 製品
   unitType UnitType    // 重量 or 個数
   isCRT    Boolean     @default(false) // CRT判定フラグ
+  hasScale Boolean     @default(false) // 大坪・小坪管理対象フラグ
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
@@ -197,10 +198,9 @@ model WorkRecord {
   itemId         String
   startTime      DateTime
   endTime        DateTime?
-  period         WorkPeriod    // 午前 or 午後
   quantity       Float         // 処理量
   unitType       UnitType      // 重量 or 個数
-  scaleType      ScaleType     // 小秤 or 大秤
+  scaleType      ScaleType?    // 小秤 or 大秤（大坪・小坪対象品目のみ）
   isConfirmed    Boolean       @default(false) // 確定フラグ
   troubleTypeId  String?       // トラブル情報
   notes          String?       // 備考
@@ -298,16 +298,9 @@ enum ItemRole {
   @@map("item_role")
 }
 
-enum WorkPeriod {
-  MORNING   // 午前
-  AFTERNOON // 午後
-
-  @@map("work_period")
-}
-
 enum ScaleType {
-  SMALL_SCALE // 小秤
-  LARGE_SCALE // 大秤
+  SMALL_SCALE // 小坪
+  LARGE_SCALE // 大坪
 
   @@map("scale_type")
 }

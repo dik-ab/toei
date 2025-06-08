@@ -34,6 +34,7 @@
 | category | ItemCategory | 処理物 or 製品 |
 | unitType | UnitType | 重量 or 個数 |
 | isCRT | Boolean | CRT判定フラグ |
+| hasScale | Boolean | 大坪・小坪管理対象フラグ |
 | createdAt | DateTime | 作成日時 |
 | updatedAt | DateTime | 更新日時 |
 
@@ -146,10 +147,9 @@
 | itemId | String | 品目ID |
 | startTime | DateTime | 作業開始時刻 |
 | endTime | DateTime? | 作業終了時刻（任意） |
-| period | WorkPeriod | 午前 or 午後 |
 | quantity | Float | 処理量 |
 | unitType | UnitType | 重量 or 個数 |
-| scaleType | ScaleType | 小秤 or 大秤 |
+| scaleType | ScaleType? | 小坪 or 大坪（対象品目のみ） |
 | isConfirmed | Boolean | 確定フラグ |
 | troubleTypeId | String? | トラブル情報ID（任意） |
 | notes | String? | 備考（任意） |
@@ -212,13 +212,9 @@
 - `PROCESSING_MATERIAL`: 処理物
 - `PRODUCT`: 製品
 
-### WorkPeriod (作業時間帯)
-- `MORNING`: 午前
-- `AFTERNOON`: 午後
-
 ### ScaleType (秤種別)
-- `SMALL_SCALE`: 小秤
-- `LARGE_SCALE`: 大秤
+- `SMALL_SCALE`: 小坪
+- `LARGE_SCALE`: 大坪
 
 ### ShipmentType (出荷情報種別)
 - `TYPE1`: 出荷情報1（事務所PC入力）
@@ -257,10 +253,11 @@
 - CRT品目は個数管理も可能
 - 後日まとめて入力対応
 
-### 小秤・大秤管理
-- 小秤入力: 薄い青背景 (#E3F2FD)
-- 大秤入力: 薄い緑背景 (#E8F5E8)
-- 大秤集計時に小秤入力を確定値として処理
+### 大坪・小坪管理
+- 品目マスタの`hasScale`フラグで管理対象を判定
+- 小坪入力: 薄い青背景 (#E3F2FD)
+- 大坪入力: 薄い緑背景 (#E8F5E8)
+- 大坪集計時に小坪入力を確定値として処理
 
 ## インデックス設計
 

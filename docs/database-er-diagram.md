@@ -22,6 +22,7 @@ erDiagram
         ItemCategory category
         UnitType unitType
         boolean isCRT
+        boolean hasScale
         datetime createdAt
         datetime updatedAt
     }
@@ -102,7 +103,6 @@ erDiagram
         string itemId FK
         datetime startTime
         datetime endTime
-        WorkPeriod period
         float quantity
         UnitType unitType
         ScaleType scaleType
@@ -239,8 +239,8 @@ erDiagram
 #### WorkRecord（作業記録）
 - **目的**: 作業者の作業実績記録
 - **ビジネスルール**: 
-  - 小秤・大秤の区別
-  - 大秤集計時に小秤入力を確定
+  - 大坪・小坪管理（対象品目のみ）
+  - 大坪集計時に小坪入力を確定
   - CRT品目は個数管理も可能
 
 #### Shipment / ShipmentItem（出荷情報）
