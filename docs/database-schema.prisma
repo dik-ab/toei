@@ -1,0 +1,320 @@
+// 半田港手解体室アプリ データベーススキーマ
+// Generated: 2025-06-08
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// マスタテーブル
+// ========================================
+
+// 企業マスタ
+model Company {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // リレーション
+  companyItems CompanyItem[] // 企業と処理物品目の紐づけ
+  arrivals     Arrival[]     // 入荷情報
+
+  @@map("companies")
+}
+
+// 品目マスタ
+model Item {
+  id       String      @id @default(cuid())
+  name     String      @unique
+  category ItemCategory // 処理物 or 製品
+  unitType UnitType    // 重量 or 個数
+  isCRT    Boolean     @default(false) // CRT判定フラグ
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // リレーション
+  companyItems         CompanyItem[]         // 企業との紐づけ
+  workTypeItems        WorkTypeItem[]        // 作業内容との紐づけ
+  arrivalItems         ArrivalItem[]         // 入荷品目
+  workRecords          WorkRecord[]          // 作業記録
+  shipmentItems        ShipmentItem[]        // 出荷品目
+  inventories          Inventory[]           // 在庫
+  destinationItems     DestinationItem[]     // 出荷先との紐づけ
+
+  @@map("items")
+}
+
+// 作業者マスタ
+model Worker {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // リレーション
+  workRecords WorkRecord[] // 作業記録
+
+  @@map("workers")
+}
+
+// 作業内容マスタ
+model WorkType {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // リレーション
+  workTypeItems WorkTypeItem[] // 作業内容と品目の紐づけ
+  workRecords   WorkRecord[]   // 作業記録
+
+  @@map("work_types")
+}
+
+// 出荷先マスタ
+model Destination {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // リレーション
+  destinationItems DestinationItem[] // 出荷先と製品の紐づけ
+  shipments        Shipment[]        // 出荷情報
+
+  @@map("destinations")
+}
+
+// トラブル情報マスタ
+model TroubleType {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // リレーション
+  workRecords WorkRecord[] // 作業記録
+
+  @@map("trouble_types")
+}
+
+// ========================================
+// 中間テーブル（多対多リレーション）
+// ========================================
+
+// 企業と処理物品目の紐づけ
+model CompanyItem {
+  id        String @id @default(cuid())
+  companyId String
+  itemId    String
+
+  // リレーション
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  item    Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, itemId])
+  @@map("company_items")
+}
+
+// 作業内容と品目の紐づけ（処理物・製品両方）
+model WorkTypeItem {
+  id         String   @id @default(cuid())
+  workTypeId String
+  itemId     String
+  itemRole   ItemRole // 処理物 or 製品
+
+  // リレーション
+  workType WorkType @relation(fields: [workTypeId], references: [id], onDelete: Cascade)
+  item     Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([workTypeId, itemId, itemRole])
+  @@map("work_type_items")
+}
+
+// 出荷先と製品の紐づけ
+model DestinationItem {
+  id            String @id @default(cuid())
+  destinationId String
+  itemId        String
+  unitPrice     Float  // 単価(円/kg)
+
+  // リレーション
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  item        Item        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([destinationId, itemId])
+  @@map("destination_items")
+}
+
+// ========================================
+// トランザクションテーブル
+// ========================================
+
+// 入荷情報
+model Arrival {
+  id        String   @id @default(cuid())
+  date      DateTime @default(now())
+  companyId String
+  totalAmount Float? // 合計金額
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // リレーション
+  company      Company       @relation(fields: [companyId], references: [id])
+  arrivalItems ArrivalItem[] // 入荷品目詳細
+
+  @@map("arrivals")
+}
+
+// 入荷品目詳細
+model ArrivalItem {
+  id        String @id @default(cuid())
+  arrivalId String
+  itemId    String
+  weight    Float  // 重量
+  amount    Float  // 金額
+
+  // リレーション
+  arrival Arrival @relation(fields: [arrivalId], references: [id], onDelete: Cascade)
+  item    Item    @relation(fields: [itemId], references: [id])
+
+  @@map("arrival_items")
+}
+
+// 作業記録
+model WorkRecord {
+  id             String        @id @default(cuid())
+  workerId       String
+  workTypeId     String
+  itemId         String
+  startTime      DateTime
+  endTime        DateTime?
+  period         WorkPeriod    // 午前 or 午後
+  quantity       Float         // 処理量
+  unitType       UnitType      // 重量 or 個数
+  scaleType      ScaleType     // 小秤 or 大秤
+  isConfirmed    Boolean       @default(false) // 確定フラグ
+  troubleTypeId  String?       // トラブル情報
+  notes          String?       // 備考
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // リレーション
+  worker      Worker       @relation(fields: [workerId], references: [id])
+  workType    WorkType     @relation(fields: [workTypeId], references: [id])
+  item        Item         @relation(fields: [itemId], references: [id])
+  troubleType TroubleType? @relation(fields: [troubleTypeId], references: [id])
+
+  @@map("work_records")
+}
+
+// 出荷情報
+model Shipment {
+  id            String        @id @default(cuid())
+  destinationId String
+  factoryName   String        @default("半田港") // 出荷元工場名
+  shipmentDate  DateTime      @default(now())   // 出荷日
+  totalAmount   Float         // 合計金額
+  lotNumber     String        @unique           // トーエイのロットNo. (YYYYMMDDXXN)
+  shipmentType  ShipmentType  // 出荷情報1 or 出荷情報2
+  
+  // 出荷情報2用フィールド
+  approvalStatus String?      // 承認状況
+  applicationNo  String?      // 申請No.
+  subject        String?      // 件名
+  refineryLotNo  String?      // 精錬所ロットNo
+  
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // リレーション
+  destination   Destination     @relation(fields: [destinationId], references: [id])
+  shipmentItems ShipmentItem[]  // 出荷品目詳細
+
+  @@map("shipments")
+}
+
+// 出荷品目詳細
+model ShipmentItem {
+  id           String @id @default(cuid())
+  shipmentId   String
+  itemId       String
+  unitPrice    Float  // 単価(円/kg)
+  quantity     Float  // 数量(kg)
+  location     String @default("手解体") // 発生場所
+
+  // リレーション
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  item     Item     @relation(fields: [itemId], references: [id])
+
+  @@map("shipment_items")
+}
+
+// 在庫管理
+model Inventory {
+  id          String   @id @default(cuid())
+  itemId      String
+  quantity    Float    // 在庫量
+  unitType    UnitType // 重量 or 個数
+  lastUpdated DateTime @updatedAt
+
+  // リレーション
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@unique([itemId])
+  @@map("inventories")
+}
+
+// ========================================
+// Enum定義
+// ========================================
+
+enum ItemCategory {
+  PROCESSING_MATERIAL // 処理物
+  PRODUCT             // 製品
+
+  @@map("item_category")
+}
+
+enum UnitType {
+  WEIGHT // 重量
+  COUNT  // 個数
+
+  @@map("unit_type")
+}
+
+enum ItemRole {
+  PROCESSING_MATERIAL // 処理物
+  PRODUCT             // 製品
+
+  @@map("item_role")
+}
+
+enum WorkPeriod {
+  MORNING   // 午前
+  AFTERNOON // 午後
+
+  @@map("work_period")
+}
+
+enum ScaleType {
+  SMALL_SCALE // 小秤
+  LARGE_SCALE // 大秤
+
+  @@map("scale_type")
+}
+
+enum ShipmentType {
+  TYPE1 // 出荷情報1（事務所PC入力）
+  TYPE2 // 出荷情報2（JUST.DB自動登録）
+
+  @@map("shipment_type")
+}
